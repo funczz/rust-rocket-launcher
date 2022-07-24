@@ -1,0 +1,75 @@
+name: test and build on ubuntu-22.04
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on ubuntu-22.04/x86_64
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Run apt-get install
+      run: |
+        sudo apt-get update
+        sudo apt-get install libgtk-4-dev
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Rust-cache
+      uses: Swatinem/rust-cache@v1
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Run cargo test
+      run: cargo test
+
+  build:
+    needs: test
+    name: Build on ubuntu-22.04/${{ matrix.arch }}
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
+      fail-fast: false
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: "true"
+    - name: Set up flatpak-builder
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install \
+          flatpak flatpak-builder \
+          python3-aiohttp \
+          python3-tenacity \
+          python3-gi-cairo \
+          xvfb \
+          ccache \
+          zstd \
+          qemu-user-static
+        sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        sudo flatpak install --noninteractive \
+          runtime/org.freedesktop.Platform/${{ matrix.arch }}/21.08 \
+          runtime/org.gnome.Platform/${{ matrix.arch }}/42 \
+          runtime/org.gnome.Sdk/${{ matrix.arch }}/42 \
+          runtime/org.freedesktop.Sdk.Extension.rust-stable/${{ matrix.arch }}/21.08
+    - name: Build
+      uses: bilelmoussaoui/flatpak-github-actions/flatpak-builder@v4
+      with:
+        bundle: com.github.funczz.rocket-launcher-gtk4-${{ matrix.arch }}.flatpak
+        manifest-path: ./flatpak.yaml
+        cache-key: flatpak-builder-${{ github.sha }}
+        arch: ${{ matrix.arch }}
+    - name: Run ls
+      run: |
+        ls -l

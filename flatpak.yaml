@@ -1,0 +1,47 @@
+# build: flatpak-builder --force-clean target/flatpak flatpak.yaml
+app-id: com.github.funczz.rocket-launcher-gtk4
+runtime: org.gnome.Platform
+runtime-version: "42"
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: rocket-launcher-gtk4
+finish-args:
+  - --share=ipc
+  - --device=dri
+  #- --device=all
+  #- --socket=x11
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=session-bus
+  #- --socket=pulseaudio
+  #- --socket=ssh-auth
+  #- --talk-name=org.freedesktop.Notifications
+  #- --talk-name=org.freedesktop.portal.OpenURI
+  #- --filesystem=home:rw
+  #- --filesystem=host
+  #- --filesystem=xdg-config
+  #- --filesystem=/tmp
+  #- --filesystem=/var/tmp
+  #- --share=network
+  #
+  #- --filesystem=xdg-run/dconf
+  #- --filesystem=~/.config/dconf:ro
+  #- --talk-name=ca.desrt.dconf
+  #- --env=DCONF_USER_CONFIG_DIR=.config/dconf
+
+build-options: 
+  append-path: "/usr/lib/sdk/rust-stable/bin" #"/usr/lib/sdk/rust-nightly/bin"
+  #prepend-path: "/usr/lib/sdk/llvm12/bin"
+  #prepend-ld-library-path: "/usr/lib/sdk/llvm12/lib"
+  build-args:
+    - --share=network
+modules:
+  - name: com.github.funczz.rocket-launcher-gtk4
+    buildsystem: simple
+    build-commands:
+      - "cargo build --release --verbose" #"source /usr/lib/sdk/rust-stable/enable.sh && "
+      - "install -Dm755 ./target/release/rocket-launcher-gtk4 /app/bin/rocket-launcher-gtk4" #"install -D "
+    sources:
+      - type: dir
+        path: "./"
